@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
+import { useRouter } from 'vue-router'
 import { GET_TEAMS, CREATE_TEAM, UPDATE_TEAM, DELETE_TEAM } from '../graphql/queries'
 import TeamCard from '../components/TeamCard.vue'
 import TeamModal from '../components/TeamModal.vue'
@@ -23,6 +24,9 @@ interface Team {
 const showCreateModal = ref(false)
 const editingTeam = ref<Team | null>(null)
 const managingTeamPlayers = ref<Team | null>(null)
+
+// Router for navigation
+const router = useRouter()
 
 // Authentication check
 const { isAuthenticated } = useAuth()
@@ -63,6 +67,14 @@ const handleDeleteTeam = async (team: Team) => {
 
 const handleManageTeamPlayers = (team: Team) => {
   managingTeamPlayers.value = team
+}
+
+const handleGenerateTeams = (team: Team) => {
+  // Navigate to team-specific pairing view
+  router.push({
+    name: 'TeamPairing',
+    params: { teamId: team.id.toString() },
+  })
 }
 
 const handleSaveTeam = async (teamData: { name: string }) => {
@@ -140,6 +152,7 @@ const closeModal = () => {
         @edit="handleEditTeam"
         @delete="handleDeleteTeam"
         @manage-players="handleManageTeamPlayers"
+        @generate-teams="handleGenerateTeams"
       />
     </div>
 

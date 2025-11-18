@@ -29,6 +29,7 @@ defineEmits<{
   edit: [team: Team]
   delete: [team: Team]
   'manage-players': [team: Team]
+  'generate-teams': [team: Team]
 }>()
 
 const maxDisplayPlayers = 5
@@ -84,9 +85,19 @@ const averageRating = computed(() => {
     </div>
 
     <div class="team-card__footer">
-      <button @click="$emit('manage-players', team)" class="btn btn--primary btn--full">
-        Manage Players
-      </button>
+      <div class="footer-buttons">
+        <button @click="$emit('manage-players', team)" class="btn btn--primary">
+          Manage Players
+        </button>
+        <button
+          @click="$emit('generate-teams', team)"
+          class="btn btn--secondary"
+          :disabled="team.players.length < 2"
+          title="Generate balanced teams from this squad"
+        >
+          Generate Teams
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -217,6 +228,32 @@ const averageRating = computed(() => {
   margin-top: auto;
 }
 
+.footer-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.footer-buttons .btn {
+  width: 100%;
+}
+
+.btn--secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: var(--bg-surface);
+  border-color: var(--accent-primary);
+}
+
+.btn--secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn--small {
   padding: var(--space-xs) var(--space-sm);
   font-size: 0.75rem;
@@ -230,9 +267,5 @@ const averageRating = computed(() => {
 .btn--danger:hover {
   background: rgba(239, 68, 68, 0.1);
   border-color: var(--error);
-}
-
-.btn--full {
-  width: 100%;
 }
 </style>

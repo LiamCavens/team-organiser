@@ -19,6 +19,11 @@ const router = createRouter({
       name: 'pairing',
       component: () => import('../views/TeamPairingView.vue'),
     },
+    {
+      path: '/team/:teamId/pairing',
+      name: 'TeamPairing',
+      component: () => import('../views/TeamSpecificPairingView.vue'),
+    },
   ],
 })
 
