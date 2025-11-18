@@ -1,0 +1,51 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "password": "admin",
+      "email": "admin@footballmanager.com",
+      "role": "ADMIN"
+    },
+    {
+      "username": "coach1",
+      "password": "password123",
+      "email": "coach1@example.com",
+      "role": "USER"
+    },
+    {
+      "username": "manager2",
+      "password": "password123",
+      "email": "manager2@example.com",
+      "role": "USER"
+    }
+  ],
+  "players": [
+    { "name": "Alex Johnson", "rating": 85 },
+    { "name": "Marcus Williams", "rating": 78 },
+    { "name": "David Rodriguez", "rating": 72 },
+    { "name": "Jake Thompson", "rating": 90 },
+    { "name": "Ryan Martinez", "rating": 65 },
+    { "name": "Chris Anderson", "rating": 82 },
+    { "name": "Michael Brown", "rating": 88 },
+    { "name": "Tyler Davis", "rating": 45 },
+    { "name": "Jordan Wilson", "rating": 76 },
+    { "name": "Brandon Garcia", "rating": 63 },
+    { "name": "Connor Lopez", "rating": 91 },
+    { "name": "Austin Miller", "rating": 29 },
+    { "name": "Nathan Taylor", "rating": 77 },
+    { "name": "Ethan Moore", "rating": 84 },
+    { "name": "Lucas Jackson", "rating": 58 },
+    { "name": "Hunter White", "rating": 73 },
+    { "name": "Mason Harris", "rating": 86 },
+    { "name": "Dylan Clark", "rating": 41 },
+    { "name": "Noah Lewis", "rating": 79 },
+    { "name": "Caleb Young", "rating": 67 }
+  ],
+  "teams": [
+    { "name": "Thursday 7s @ 8pm" },
+    { "name": "Sunday 7s @ 5pm" },
+    { "name": "Thursday 5s @ 2pm" },
+    { "name": "Storm Riders" },
+    { "name": "Fire Hawks" }
+  ]
+}
