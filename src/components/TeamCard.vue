@@ -109,12 +109,13 @@ const averageRating = computed(() => {
 .team-card__header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: flex-center;
   gap: var(--space-md);
 }
 
 .team-card__name {
-  font-size: 1.25rem;
+  line-height: 1rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;

@@ -157,21 +157,48 @@ async function main() {
       )
     }
 
-    // Optionally assign some players to teams randomly
-    console.log('🔗 Randomly assigning players to teams...')
-    const shuffledPlayers = [...createdPlayers].sort(() => Math.random() - 0.5)
+    // Assign players to teams based on criteria
+    console.log('🔗 Assigning players to teams...')
 
-    for (let i = 0; i < Math.min(15, shuffledPlayers.length); i++) {
-      const player = shuffledPlayers[i]
-      const randomTeam = createdTeams[Math.floor(Math.random() * createdTeams.length)]
+    if (createdTeams.length >= 2) {
+      const firstTeam = createdTeams[0] // Sunday 7s @ 4pm
+      const secondTeam = createdTeams[1] // Thursday 7s @ 9pm
 
-      await prisma.teamPlayer.create({
-        data: {
-          teamId: randomTeam.id,
-          playerId: player.id,
-        },
-      })
-      console.log(`  ✅ Assigned ${player.name} to ${randomTeam.name}`)
+      // Add ALL players to the first team
+      console.log(`📝 Adding all players to "${firstTeam.name}"...`)
+      for (const player of createdPlayers) {
+        await prisma.teamPlayer.create({
+          data: {
+            teamId: firstTeam.id,
+            playerId: player.id,
+          },
+        })
+        console.log(`  ✅ Added ${player.name} (${player.rating}) to ${firstTeam.name}`)
+      }
+
+      // Add players with rating 65 or higher to the second team
+      const highRatedPlayers = createdPlayers.filter((player) => player.rating >= 65)
+      console.log(
+        `📝 Adding ${highRatedPlayers.length} high-rated players (65+) to "${secondTeam.name}"...`,
+      )
+
+      for (const player of highRatedPlayers) {
+        await prisma.teamPlayer.create({
+          data: {
+            teamId: secondTeam.id,
+            playerId: player.id,
+          },
+        })
+        console.log(`  ✅ Added ${player.name} (${player.rating}) to ${secondTeam.name}`)
+      }
+
+      const lowRatedCount = createdPlayers.length - highRatedPlayers.length
+      console.log(`📊 Team assignment summary:`)
+      console.log(`   - ${firstTeam.name}: ${createdPlayers.length} players (all players)`)
+      console.log(`   - ${secondTeam.name}: ${highRatedPlayers.length} players (rating 65+)`)
+      console.log(`   - ${lowRatedCount} players under rating 65 are only in the first team`)
+    } else {
+      console.log('⚠️  Not enough teams created for assignment logic')
     }
 
     console.log('🎉 Database seeding completed successfully!')
@@ -179,7 +206,7 @@ async function main() {
     console.log(`   - ${createdUsers.length} users created`)
     console.log(`   - ${createdTeams.length} teams created`)
     console.log(`   - ${createdPlayers.length} players created`)
-    console.log(`   - Random team assignments completed`)
+    console.log(`   - Team assignments completed based on player ratings`)
     console.log('\n🔐 Login credentials:')
     console.log('   Admin: username=admin, password=admin')
     console.log('   User1: username=coach1, password=password123')

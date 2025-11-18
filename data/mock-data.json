@@ -20,32 +20,25 @@
     }
   ],
   "players": [
-    { "name": "Alex Johnson", "rating": 85 },
-    { "name": "Marcus Williams", "rating": 78 },
-    { "name": "David Rodriguez", "rating": 72 },
-    { "name": "Jake Thompson", "rating": 90 },
-    { "name": "Ryan Martinez", "rating": 65 },
-    { "name": "Chris Anderson", "rating": 82 },
-    { "name": "Michael Brown", "rating": 88 },
-    { "name": "Tyler Davis", "rating": 45 },
-    { "name": "Jordan Wilson", "rating": 76 },
-    { "name": "Brandon Garcia", "rating": 63 },
-    { "name": "Connor Lopez", "rating": 91 },
-    { "name": "Austin Miller", "rating": 29 },
-    { "name": "Nathan Taylor", "rating": 77 },
-    { "name": "Ethan Moore", "rating": 84 },
-    { "name": "Lucas Jackson", "rating": 58 },
-    { "name": "Hunter White", "rating": 73 },
-    { "name": "Mason Harris", "rating": 86 },
-    { "name": "Dylan Clark", "rating": 41 },
-    { "name": "Noah Lewis", "rating": 79 },
-    { "name": "Caleb Young", "rating": 67 }
+    { "name": "Richie", "rating": 90 },
+    { "name": "Robbie", "rating": 88 },
+    { "name": "Anderson", "rating": 82 },
+    { "name": "Jamie", "rating": 80 },
+    { "name": "Liam", "rating": 65 },
+    { "name": "Alan", "rating": 65 },
+    { "name": "Newton", "rating": 54 },
+    { "name": "Dunzy", "rating": 68 },
+    { "name": "Joe", "rating": 42 },
+    { "name": "Ken", "rating": 30 },
+    { "name": "Barry", "rating": 70 },
+    { "name": "Mario", "rating": 62 },
+    { "name": "Steph", "rating": 45 },
+    { "name": "Paddy", "rating": 80 },
+    { "name": "Eddie", "rating": 70 },
+    { "name": "Cooper", "rating": 74 },
+    { "name": "Andy B", "rating": 79 },
+    { "name": "Paul", "rating": 55 },
+    { "name": "Army Kev", "rating": 55 }
   ],
-  "teams": [
-    { "name": "Thursday 7s @ 8pm" },
-    { "name": "Sunday 7s @ 5pm" },
-    { "name": "Thursday 5s @ 2pm" },
-    { "name": "Storm Riders" },
-    { "name": "Fire Hawks" }
-  ]
+  "teams": [{ "name": "Sunday 7s @ 4pm" }, { "name": "Thursday 7s @ 9pm" }]
 }
