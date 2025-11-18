@@ -1,68 +1,3 @@
-<template>
-  <!-- Authentication Required State -->
-  <div v-if="!isAuthenticated" class="auth-required">
-    <div class="auth-prompt">
-      <h3>🔒 Authentication Required</h3>
-      <p>Please sign in to manage your teams.</p>
-      <p>You'll be able to create, edit, and organize your football teams once logged in.</p>
-    </div>
-  </div>
-
-  <!-- Error State -->
-  <div v-else-if="error && !loading" class="error">
-    <p>Error loading teams: {{ error.message }}</p>
-    <button @click="() => refetch()" class="btn">Try Again</button>
-  </div>
-
-  <!-- Teams Management (Authenticated) -->
-  <div v-else class="teams-view">
-    <div class="teams-view__header">
-      <h2 class="teams-view__title">Teams Management</h2>
-      <button @click="showCreateModal = true" class="btn btn--primary">+ Add Team</button>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="loading">
-      <div class="loading__spinner"></div>
-      <p>Loading teams...</p>
-    </div>
-
-    <!-- Teams Grid -->
-    <div v-else class="teams-grid">
-      <div v-if="teams?.length === 0" class="empty-state">
-        <h3>No teams yet</h3>
-        <p>Create your first team to get started!</p>
-        <button @click="showCreateModal = true" class="btn btn--primary">Create Team</button>
-      </div>
-
-      <TeamCard
-        v-for="team in teams"
-        :key="team.id"
-        :team="team"
-        @edit="handleEditTeam"
-        @delete="handleDeleteTeam"
-        @manage-players="handleManageTeamPlayers"
-      />
-    </div>
-
-    <!-- Create/Edit Team Modal -->
-    <TeamModal
-      v-if="showCreateModal || editingTeam"
-      :team="editingTeam"
-      @close="closeModal"
-      @save="handleSaveTeam"
-    />
-
-    <!-- Player Management Modal -->
-    <TeamPlayersModal
-      v-if="managingTeamPlayers"
-      :team="managingTeamPlayers"
-      @close="managingTeamPlayers = null"
-      @updated="refetch"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
@@ -160,6 +95,71 @@ const closeModal = () => {
   editingTeam.value = null
 }
 </script>
+
+<template>
+  <!-- Authentication Required State -->
+  <div v-if="!isAuthenticated" class="auth-required">
+    <div class="auth-prompt">
+      <h3>🔒 Authentication Required</h3>
+      <p>Please sign in to manage your teams.</p>
+      <p>You'll be able to create, edit, and organize your football teams once logged in.</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div v-else-if="error && !loading" class="error">
+    <p>Error loading teams: {{ error.message }}</p>
+    <button @click="() => refetch()" class="btn">Try Again</button>
+  </div>
+
+  <!-- Teams Management (Authenticated) -->
+  <div v-else class="teams-view">
+    <div class="teams-view__header">
+      <h2 class="teams-view__title">Teams Management</h2>
+      <button @click="showCreateModal = true" class="btn btn--primary">+ Add Team</button>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="loading">
+      <div class="loading__spinner"></div>
+      <p>Loading teams...</p>
+    </div>
+
+    <!-- Teams Grid -->
+    <div v-else class="teams-grid">
+      <div v-if="teams?.length === 0" class="empty-state">
+        <h3>No teams yet</h3>
+        <p>Create your first team to get started!</p>
+        <button @click="showCreateModal = true" class="btn btn--primary">Create Team</button>
+      </div>
+
+      <TeamCard
+        v-for="team in teams"
+        :key="team.id"
+        :team="team"
+        @edit="handleEditTeam"
+        @delete="handleDeleteTeam"
+        @manage-players="handleManageTeamPlayers"
+      />
+    </div>
+
+    <!-- Create/Edit Team Modal -->
+    <TeamModal
+      v-if="showCreateModal || editingTeam"
+      :team="editingTeam"
+      @close="closeModal"
+      @save="handleSaveTeam"
+    />
+
+    <!-- Player Management Modal -->
+    <TeamPlayersModal
+      v-if="managingTeamPlayers"
+      :team="managingTeamPlayers"
+      @close="managingTeamPlayers = null"
+      @updated="refetch"
+    />
+  </div>
+</template>
 
 <style scoped>
 .teams-view {

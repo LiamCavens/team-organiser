@@ -1,63 +1,3 @@
-<template>
-  <div class="team-card card">
-    <div class="team-card__header">
-      <h3 class="team-card__name">{{ team.name }}</h3>
-      <div class="team-card__actions">
-        <button @click="$emit('edit', team)" class="btn btn--small" title="Edit team">
-          ✏️
-        </button>
-        <button @click="$emit('delete', team)" class="btn btn--small btn--danger" title="Delete team">
-          🗑️
-        </button>
-      </div>
-    </div>
-
-    <div class="team-card__stats">
-      <div class="stat">
-        <span class="stat__label">Players:</span>
-        <span class="stat__value">{{ team.players.length }}</span>
-      </div>
-      <div class="stat" v-if="team.players.length > 0">
-        <span class="stat__label">Avg Rating:</span>
-        <span class="stat__value">{{ averageRating }}</span>
-      </div>
-      <div class="stat" v-if="team.players.length > 0">
-        <span class="stat__label">Total Rating:</span>
-        <span class="stat__value">{{ totalRating }}</span>
-      </div>
-    </div>
-
-    <div class="team-card__players">
-      <h4 class="players-title">Players</h4>
-      <div v-if="team.players.length === 0" class="empty-players">
-        No players assigned
-      </div>
-      <div v-else class="players-list">
-        <div 
-          v-for="player in displayPlayers" 
-          :key="player.id" 
-          class="player-item"
-        >
-          <span class="player-name">{{ player.name }}</span>
-          <span class="player-rating">{{ player.rating }}</span>
-        </div>
-        <div v-if="team.players.length > maxDisplayPlayers" class="more-players">
-          +{{ team.players.length - maxDisplayPlayers }} more
-        </div>
-      </div>
-    </div>
-
-    <div class="team-card__footer">
-      <button 
-        @click="$emit('manage-players', team)" 
-        class="btn btn--primary btn--full"
-      >
-        Manage Players
-      </button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed } from 'vue'
 
@@ -93,27 +33,72 @@ defineEmits<{
 
 const maxDisplayPlayers = 5
 
-const displayPlayers = computed(() => 
-  props.team.players.slice(0, maxDisplayPlayers)
-)
+const displayPlayers = computed(() => props.team.players.slice(0, maxDisplayPlayers))
 
 const averageRating = computed(() => {
   if (props.team.players.length === 0) return 0
   const total = props.team.players.reduce((sum, player) => sum + player.rating, 0)
   return Math.round(total / props.team.players.length)
 })
-
-const totalRating = computed(() => 
-  props.team.players.reduce((sum, player) => sum + player.rating, 0)
-)
 </script>
+
+<template>
+  <div class="team-card card">
+    <div class="team-card__header">
+      <h3 class="team-card__name">{{ team.name }}</h3>
+      <div class="team-card__actions">
+        <button @click="$emit('edit', team)" class="btn btn--small" title="Edit team">✏️</button>
+        <button
+          @click="$emit('delete', team)"
+          class="btn btn--small btn--danger"
+          title="Delete team"
+        >
+          🗑️
+        </button>
+      </div>
+    </div>
+
+    <div class="team-card__stats">
+      <div class="stat">
+        <span class="stat__label">Players:</span>
+        <span class="stat__value">{{ team.players.length }}</span>
+      </div>
+      <div class="stat" v-if="team.players.length > 0">
+        <span class="stat__label">Avg Rating:</span>
+        <span class="stat__value">{{ averageRating }}</span>
+      </div>
+    </div>
+
+    <div class="team-card__players">
+      <h4 class="players-title">Players</h4>
+      <div v-if="team.players.length === 0" class="empty-players">No players assigned</div>
+      <div v-else class="players-list">
+        <div v-for="player in displayPlayers" :key="player.id" class="player-item">
+          <span class="player-name">{{ player.name }}</span>
+          <span class="player-rating">{{ player.rating }}</span>
+        </div>
+        <div v-if="team.players.length > maxDisplayPlayers" class="more-players">
+          +{{ team.players.length - maxDisplayPlayers }} more
+        </div>
+      </div>
+    </div>
+
+    <div class="team-card__footer">
+      <button @click="$emit('manage-players', team)" class="btn btn--primary btn--full">
+        Manage Players
+      </button>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .team-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .team-card:hover {

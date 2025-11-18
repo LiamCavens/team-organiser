@@ -1,22 +1,3 @@
-<template>
-  <div class="theme-selector">
-    <label class="theme-selector__label">Theme:</label>
-    <select 
-      v-model="selectedAccent" 
-      @change="handleAccentChange"
-      class="theme-selector__select"
-    >
-      <option 
-        v-for="color in accentColors" 
-        :key="color.value" 
-        :value="color.value"
-      >
-        {{ color.name }}
-      </option>
-    </select>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useTheme } from '../composables/useTheme'
@@ -33,6 +14,17 @@ const handleAccentChange = () => {
   setAccentColor(selectedAccent.value)
 }
 </script>
+
+<template>
+  <div class="theme-selector">
+    <label class="theme-selector__label">Theme:</label>
+    <select v-model="selectedAccent" @change="handleAccentChange" class="theme-selector__select">
+      <option v-for="color in accentColors" :key="color.value" :value="color.value">
+        {{ color.name }}
+      </option>
+    </select>
+  </div>
+</template>
 
 <style scoped>
 .theme-selector {

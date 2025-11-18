@@ -1,59 +1,3 @@
-<template>
-  <!-- Authentication Required State -->
-  <div v-if="!isAuthenticated" class="auth-required">
-    <div class="auth-prompt">
-      <h3>🔒 Authentication Required</h3>
-      <p>Please sign in to manage your players.</p>
-      <p>You'll be able to create, edit, and organize your football players once logged in.</p>
-    </div>
-  </div>
-
-  <!-- Players Management (Authenticated) -->
-  <div v-else class="players-view">
-    <div class="players-view__header">
-      <h2 class="players-view__title">Players Management</h2>
-      <button @click="showCreateModal = true" class="btn btn--primary">+ Add Player</button>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="loading">
-      <div class="loading__spinner"></div>
-      <p>Loading players...</p>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="error" class="error">
-      <p>Error loading players: {{ error.message }}</p>
-      <button @click="() => refetch()" class="btn">Try Again</button>
-    </div>
-
-    <!-- Players Grid -->
-    <div v-else class="players-grid">
-      <div v-if="players?.length === 0" class="empty-state">
-        <h3>No players yet</h3>
-        <p>Create your first player to get started!</p>
-        <button @click="showCreateModal = true" class="btn btn--primary">Create Player</button>
-      </div>
-
-      <PlayerCard
-        v-for="player in players"
-        :key="player.id"
-        :player="player"
-        @edit="handleEditPlayer"
-        @delete="handleDeletePlayer"
-      />
-    </div>
-
-    <!-- Create/Edit Player Modal -->
-    <PlayerModal
-      v-if="showCreateModal || editingPlayer"
-      :player="editingPlayer"
-      @close="closeModal"
-      @save="handleSavePlayer"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
@@ -144,6 +88,62 @@ const closeModal = () => {
   editingPlayer.value = null
 }
 </script>
+
+<template>
+  <!-- Authentication Required State -->
+  <div v-if="!isAuthenticated" class="auth-required">
+    <div class="auth-prompt">
+      <h3>🔒 Authentication Required</h3>
+      <p>Please sign in to manage your players.</p>
+      <p>You'll be able to create, edit, and organize your football players once logged in.</p>
+    </div>
+  </div>
+
+  <!-- Players Management (Authenticated) -->
+  <div v-else class="players-view">
+    <div class="players-view__header">
+      <h2 class="players-view__title">Players Management</h2>
+      <button @click="showCreateModal = true" class="btn btn--primary">+ Add Player</button>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="loading">
+      <div class="loading__spinner"></div>
+      <p>Loading players...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="error">
+      <p>Error loading players: {{ error.message }}</p>
+      <button @click="() => refetch()" class="btn">Try Again</button>
+    </div>
+
+    <!-- Players Grid -->
+    <div v-else class="players-grid">
+      <div v-if="players?.length === 0" class="empty-state">
+        <h3>No players yet</h3>
+        <p>Create your first player to get started!</p>
+        <button @click="showCreateModal = true" class="btn btn--primary">Create Player</button>
+      </div>
+
+      <PlayerCard
+        v-for="player in players"
+        :key="player.id"
+        :player="player"
+        @edit="handleEditPlayer"
+        @delete="handleDeletePlayer"
+      />
+    </div>
+
+    <!-- Create/Edit Player Modal -->
+    <PlayerModal
+      v-if="showCreateModal || editingPlayer"
+      :player="editingPlayer"
+      @close="closeModal"
+      @save="handleSavePlayer"
+    />
+  </div>
+</template>
 
 <style scoped>
 .players-view {

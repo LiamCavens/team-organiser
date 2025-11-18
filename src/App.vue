@@ -1,35 +1,3 @@
-<template>
-  <div id="app">
-    <header class="header">
-      <div class="header__content">
-        <h1 class="header__title">Football Organiser</h1>
-        <div class="header__actions">
-          <div class="auth-section">
-            <div v-if="user" class="user-info">
-              <span class="user-welcome">Welcome, {{ user.username }}!</span>
-              <button @click="handleLogout" class="logout-btn">Logout</button>
-            </div>
-            <button v-else @click="showLoginModal = true" class="login-btn">Sign In</button>
-          </div>
-          <ThemeSelector />
-          <nav class="nav">
-            <RouterLink to="/" class="nav__link">Teams</RouterLink>
-            <RouterLink to="/players" class="nav__link">Players</RouterLink>
-            <RouterLink to="/pairing" class="nav__link">Team Pairing</RouterLink>
-          </nav>
-        </div>
-      </div>
-    </header>
-
-    <main class="main">
-      <RouterView />
-    </main>
-
-    <!-- Login Modal -->
-    <LoginModal v-model="showLoginModal" @login-success="handleLoginSuccess" />
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
@@ -70,6 +38,38 @@ const handleLogout = () => {
   console.log('👋 User logged out')
 }
 </script>
+
+<template>
+  <div id="app">
+    <header class="header">
+      <div class="header__content">
+        <h1 class="header__title">Football Organiser</h1>
+        <div class="header__actions">
+          <div class="auth-section">
+            <div v-if="user" class="user-info">
+              <span class="user-welcome">Welcome, {{ user.username }}!</span>
+              <button @click="handleLogout" class="logout-btn">Logout</button>
+            </div>
+            <button v-else @click="showLoginModal = true" class="login-btn">Sign In</button>
+          </div>
+          <ThemeSelector />
+          <nav class="nav">
+            <RouterLink to="/" class="nav__link">Teams</RouterLink>
+            <RouterLink to="/players" class="nav__link">Players</RouterLink>
+            <RouterLink to="/pairing" class="nav__link">Team Pairing</RouterLink>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <RouterView />
+    </main>
+
+    <!-- Login Modal -->
+    <LoginModal v-model="showLoginModal" @login-success="handleLoginSuccess" />
+  </div>
+</template>
 
 <style scoped>
 .header {

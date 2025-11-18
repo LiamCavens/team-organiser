@@ -1,3 +1,111 @@
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useQuery } from '@vue/apollo-composable'
+import { GET_PLAYERS } from '../graphql/queries'
+import {
+  findBestTeamBalance,
+  createMultipleTeamPairs,
+  calculateTeamStats,
+  type Player,
+  type TeamPair,
+} from '../utils/teamPairing'
+
+const selectedPlayerIds = ref<number[]>([])
+const teamSize = ref(7) // Default to 7v7
+const balanceMode = ref('balanced')
+const generatedTeams = ref<TeamPair[]>([])
+
+// GraphQL query
+const { result, loading, error, refetch } = useQuery(GET_PLAYERS)
+
+const players = computed(() => result.value?.players || [])
+
+const selectedPlayers = computed(() =>
+  players.value.filter((player: Player) => selectedPlayerIds.value.includes(player.id)),
+)
+
+const availableTeamSizes = computed(() => {
+  const maxSize = Math.floor(selectedPlayers.value.length / 2)
+  const sizes = []
+  for (let i = 2; i <= Math.min(maxSize, 11); i++) {
+    sizes.push(i)
+  }
+  return sizes
+})
+
+const isSelected = (playerId: number): boolean => {
+  return selectedPlayerIds.value.includes(playerId)
+}
+
+const togglePlayer = (player: Player) => {
+  const index = selectedPlayerIds.value.indexOf(player.id)
+  if (index > -1) {
+    selectedPlayerIds.value.splice(index, 1)
+  } else {
+    selectedPlayerIds.value.push(player.id)
+  }
+}
+
+const resetSelection = () => {
+  selectedPlayerIds.value = []
+  generatedTeams.value = []
+}
+
+const generateTeams = () => {
+  if (selectedPlayers.value.length < 2) return
+
+  const playersForPairing: Player[] = selectedPlayers.value.map((p: Player) => ({
+    id: p.id,
+    name: p.name,
+    rating: p.rating,
+  }))
+
+  try {
+    if (balanceMode.value === 'random') {
+      // Generate random teams
+      const shuffled = [...playersForPairing].sort(() => Math.random() - 0.5)
+      const pairs = createMultipleTeamPairs(
+        shuffled,
+        Math.floor(shuffled.length / (teamSize.value * 2)),
+      )
+      generatedTeams.value = pairs
+    } else {
+      // Generate balanced teams
+      const totalPlayers = playersForPairing.length
+      const playersPerMatch = teamSize.value * 2
+      const numberOfMatches = Math.floor(totalPlayers / playersPerMatch)
+
+      if (numberOfMatches === 1) {
+        // Single match
+        const teamPair = findBestTeamBalance(playersForPairing)
+        generatedTeams.value = [teamPair]
+      } else {
+        // Multiple matches
+        const pairs = createMultipleTeamPairs(playersForPairing, numberOfMatches)
+        generatedTeams.value = pairs
+      }
+    }
+  } catch (error) {
+    console.error('Error generating teams:', error)
+    alert('Failed to generate teams. Please try again.')
+  }
+}
+
+// Auto-adjust team size when selection changes
+const adjustTeamSize = () => {
+  const maxSize = Math.floor(selectedPlayers.value.length / 2)
+  if (teamSize.value > maxSize) {
+    teamSize.value = Math.max(2, maxSize)
+  }
+}
+
+// Watch for selection changes
+computed(() => {
+  adjustTeamSize()
+  return selectedPlayers.value.length
+})
+</script>
+
 <template>
   <div class="team-pairing-view">
     <div class="team-pairing-view__header">
@@ -125,114 +233,6 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useQuery } from '@vue/apollo-composable'
-import { GET_PLAYERS } from '../graphql/queries'
-import {
-  findBestTeamBalance,
-  createMultipleTeamPairs,
-  calculateTeamStats,
-  type Player,
-  type TeamPair,
-} from '../utils/teamPairing'
-
-const selectedPlayerIds = ref<number[]>([])
-const teamSize = ref(7) // Default to 7v7
-const balanceMode = ref('balanced')
-const generatedTeams = ref<TeamPair[]>([])
-
-// GraphQL query
-const { result, loading, error, refetch } = useQuery(GET_PLAYERS)
-
-const players = computed(() => result.value?.players || [])
-
-const selectedPlayers = computed(() =>
-  players.value.filter((player: Player) => selectedPlayerIds.value.includes(player.id)),
-)
-
-const availableTeamSizes = computed(() => {
-  const maxSize = Math.floor(selectedPlayers.value.length / 2)
-  const sizes = []
-  for (let i = 2; i <= Math.min(maxSize, 11); i++) {
-    sizes.push(i)
-  }
-  return sizes
-})
-
-const isSelected = (playerId: number): boolean => {
-  return selectedPlayerIds.value.includes(playerId)
-}
-
-const togglePlayer = (player: Player) => {
-  const index = selectedPlayerIds.value.indexOf(player.id)
-  if (index > -1) {
-    selectedPlayerIds.value.splice(index, 1)
-  } else {
-    selectedPlayerIds.value.push(player.id)
-  }
-}
-
-const resetSelection = () => {
-  selectedPlayerIds.value = []
-  generatedTeams.value = []
-}
-
-const generateTeams = () => {
-  if (selectedPlayers.value.length < 2) return
-
-  const playersForPairing: Player[] = selectedPlayers.value.map((p: Player) => ({
-    id: p.id,
-    name: p.name,
-    rating: p.rating,
-  }))
-
-  try {
-    if (balanceMode.value === 'random') {
-      // Generate random teams
-      const shuffled = [...playersForPairing].sort(() => Math.random() - 0.5)
-      const pairs = createMultipleTeamPairs(
-        shuffled,
-        Math.floor(shuffled.length / (teamSize.value * 2)),
-      )
-      generatedTeams.value = pairs
-    } else {
-      // Generate balanced teams
-      const totalPlayers = playersForPairing.length
-      const playersPerMatch = teamSize.value * 2
-      const numberOfMatches = Math.floor(totalPlayers / playersPerMatch)
-
-      if (numberOfMatches === 1) {
-        // Single match
-        const teamPair = findBestTeamBalance(playersForPairing)
-        generatedTeams.value = [teamPair]
-      } else {
-        // Multiple matches
-        const pairs = createMultipleTeamPairs(playersForPairing, numberOfMatches)
-        generatedTeams.value = pairs
-      }
-    }
-  } catch (error) {
-    console.error('Error generating teams:', error)
-    alert('Failed to generate teams. Please try again.')
-  }
-}
-
-// Auto-adjust team size when selection changes
-const adjustTeamSize = () => {
-  const maxSize = Math.floor(selectedPlayers.value.length / 2)
-  if (teamSize.value > maxSize) {
-    teamSize.value = Math.max(2, maxSize)
-  }
-}
-
-// Watch for selection changes
-computed(() => {
-  adjustTeamSize()
-  return selectedPlayers.value.length
-})
-</script>
 
 <style scoped>
 .team-pairing-view {
