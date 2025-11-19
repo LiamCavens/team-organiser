@@ -5,6 +5,7 @@ import { useQuery } from '@vue/apollo-composable'
 import { GET_TEAM } from '../graphql/queries'
 import {
   findBestTeamBalance,
+  findRandomizedTeamBalance,
   calculateTeamStats,
   type Player,
   type TeamPair,
@@ -112,8 +113,34 @@ const generateTeams = () => {
   }
 }
 
+const regenerateTeams = () => {
+  if (selectedPlayers.value.length < 2) return
+
+  const playersForPairing: Player[] = selectedPlayers.value.map((p: Player) => ({
+    id: p.id,
+    name: p.name,
+    rating: p.rating,
+  }))
+
+  try {
+    // Use randomized generation with ±5 rating variation for more diverse teams
+    const teamPair = findRandomizedTeamBalance(playersForPairing, 5)
+    generatedTeams.value = [teamPair]
+  } catch (error) {
+    console.error('Error regenerating teams:', error)
+    alert('Failed to regenerate teams. Please try again.')
+  }
+}
+
 const goBack = () => {
   router.push('/')
+}
+
+const isSubstitutePlayer = (teamPair: TeamPair, player: Player) => {
+  if (!teamPair.substituteInfo) {
+    return false
+  }
+  return teamPair.substituteInfo.substitutePair.substitute.id === player.id
 }
 </script>
 
@@ -135,6 +162,14 @@ const goBack = () => {
           :disabled="selectedPlayers.length < 2"
         >
           Generate Teams
+        </button>
+        <button
+          v-if="generatedTeams.length > 0"
+          @click="regenerateTeams"
+          class="btn btn--accent"
+          :disabled="selectedPlayers.length < 2"
+        >
+          🎲 Mix Teams
         </button>
       </div>
     </div>
@@ -166,9 +201,6 @@ const goBack = () => {
           <div class="format-display">
             <span class="format-text">{{ gameFormat.format }}</span>
             <span class="player-count">{{ selectedPlayers.length }} players selected</span>
-          </div>
-          <div v-if="gameFormat.substitute" class="substitute-info">
-            <span class="substitute-note">💡 One team will have a substitute player</span>
           </div>
         </div>
       </div>
@@ -209,9 +241,14 @@ const goBack = () => {
           <div v-for="(teamPair, index) in generatedTeams" :key="index" class="team-pair">
             <div class="team-pair__header">
               <h4>{{ gameFormat.format }}</h4>
-              <div class="rating-difference">
-                Rating Difference: {{ teamPair.ratingDifference }}
-              </div>
+              <button
+                v-if="generatedTeams.length > 0"
+                @click="regenerateTeams"
+                class="btn btn--accent"
+                :disabled="selectedPlayers.length < 2"
+              >
+                🎲 Mix Teams
+              </button>
             </div>
 
             <div class="teams-display">
@@ -222,8 +259,21 @@ const goBack = () => {
                   <span>Avg: {{ calculateTeamStats(teamPair.team1).averageRating }}</span>
                 </div>
                 <div class="team-players">
-                  <div v-for="player in teamPair.team1" :key="player.id" class="team-player">
+                  <div
+                    v-for="player in teamPair.team1"
+                    :key="player.id"
+                    :class="[
+                      'team-player',
+                      {
+                        'substitute-highlight': isSubstitutePlayer(teamPair, player),
+                      },
+                    ]"
+                  >
                     <span>{{ player.name }}</span>
+
+                    <span v-if="isSubstitutePlayer(teamPair, player)" class="rotation-indicator"
+                      >🔄</span
+                    >
                     <span>{{ player.rating }}</span>
                   </div>
                 </div>
@@ -238,24 +288,22 @@ const goBack = () => {
                   <span>Avg: {{ calculateTeamStats(teamPair.team2).averageRating }}</span>
                 </div>
                 <div class="team-players">
-                  <div v-for="player in teamPair.team2" :key="player.id" class="team-player">
+                  <div
+                    v-for="player in teamPair.team2"
+                    :key="player.id"
+                    :class="[
+                      'team-player',
+                      {
+                        'substitute-highlight': isSubstitutePlayer(teamPair, player),
+                      },
+                    ]"
+                  >
                     <span>{{ player.name }}</span>
                     <span>{{ player.rating }}</span>
+                    <span v-if="isSubstitutePlayer(teamPair, player)" class="substitute-indicator"
+                      >📥</span
+                    >
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Substitute player if odd number -->
-            <div
-              v-if="gameFormat.substitute && selectedPlayers.length % 2 === 1"
-              class="substitute-section"
-            >
-              <div class="substitute-player">
-                <h6>Substitute</h6>
-                <div class="team-player">
-                  <span>{{ selectedPlayers[selectedPlayers.length - 1]?.name }}</span>
-                  <span>{{ selectedPlayers[selectedPlayers.length - 1]?.rating }}</span>
                 </div>
               </div>
             </div>
@@ -437,14 +485,6 @@ const goBack = () => {
   color: var(--text-primary);
 }
 
-.rating-difference {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  background: var(--bg-tertiary);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-sm);
-}
-
 .teams-display {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -486,6 +526,28 @@ const goBack = () => {
   padding: var(--space-xs) var(--space-sm);
   background: var(--bg-surface);
   border-radius: var(--radius-sm);
+  position: relative;
+}
+
+/* .rotation-highlight {
+  background: linear-gradient(
+    135deg,
+    var(--bg-surface) 0%,
+    var(--warning) 20%,
+    var(--bg-surface) 100%
+  ) !important;
+  border: 1px solid var(--warning) !important;
+} */
+
+.substitute-highlight {
+  background: var(--accent-primary-light) !important;
+  border: 1px solid var(--accent-primary) !important;
+}
+
+.rotation-indicator,
+.substitute-indicator {
+  font-size: 0.875rem;
+  margin-left: var(--space-xs);
 }
 
 .vs-divider {
@@ -506,6 +568,61 @@ const goBack = () => {
   margin-top: var(--space-lg);
   padding-top: var(--space-lg);
   border-top: 1px solid var(--border-primary);
+}
+
+.substitute-info-header {
+  text-align: center;
+  margin-bottom: var(--space-lg);
+}
+
+.substitute-info-header h6 {
+  margin: 0 0 var(--space-xs) 0;
+  color: var(--accent-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.substitute-info-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.substitute-pairing {
+  display: flex;
+  justify-content: center;
+}
+
+.substitute-pair {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  border: 2px solid var(--accent-primary-border);
+}
+
+.rotation-player,
+.substitute-player-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.player-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.rotation-arrow {
+  font-size: 1.5rem;
+  color: var(--accent-primary);
+  font-weight: bold;
 }
 
 .substitute-player {
@@ -586,6 +703,15 @@ const goBack = () => {
   .format-display {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .substitute-pair {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .rotation-arrow {
+    transform: rotate(90deg);
   }
 }
 </style>

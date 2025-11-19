@@ -4,6 +4,7 @@ import { useQuery } from '@vue/apollo-composable'
 import { GET_PLAYERS } from '../graphql/queries'
 import {
   findBestTeamBalance,
+  findRandomizedTeamBalance,
   createMultipleTeamPairs,
   calculateTeamStats,
   type Player,
@@ -62,13 +63,21 @@ const generateTeams = () => {
 
   try {
     if (balanceMode.value === 'random') {
-      // Generate random teams
-      const shuffled = [...playersForPairing].sort(() => Math.random() - 0.5)
-      const pairs = createMultipleTeamPairs(
-        shuffled,
-        Math.floor(shuffled.length / (teamSize.value * 2)),
-      )
-      generatedTeams.value = pairs
+      // Generate randomized teams with rating variations
+      const totalPlayers = playersForPairing.length
+      const playersPerMatch = teamSize.value * 2
+      const numberOfMatches = Math.floor(totalPlayers / playersPerMatch)
+
+      if (numberOfMatches === 1) {
+        // Single match with randomization
+        const teamPair = findRandomizedTeamBalance(playersForPairing, 5)
+        generatedTeams.value = [teamPair]
+      } else {
+        // Multiple matches with shuffling
+        const shuffled = [...playersForPairing].sort(() => Math.random() - 0.5)
+        const pairs = createMultipleTeamPairs(shuffled, numberOfMatches)
+        generatedTeams.value = pairs
+      }
     } else {
       // Generate balanced teams
       const totalPlayers = playersForPairing.length
@@ -88,6 +97,37 @@ const generateTeams = () => {
   } catch (error) {
     console.error('Error generating teams:', error)
     alert('Failed to generate teams. Please try again.')
+  }
+}
+
+const regenerateTeams = () => {
+  if (selectedPlayers.value.length < 2) return
+
+  const playersForPairing: Player[] = selectedPlayers.value.map((p: Player) => ({
+    id: p.id,
+    name: p.name,
+    rating: p.rating,
+  }))
+
+  try {
+    // Always use randomized generation for regeneration
+    const totalPlayers = playersForPairing.length
+    const playersPerMatch = teamSize.value * 2
+    const numberOfMatches = Math.floor(totalPlayers / playersPerMatch)
+
+    if (numberOfMatches === 1) {
+      // Single match with strong randomization
+      const teamPair = findRandomizedTeamBalance(playersForPairing, 7)
+      generatedTeams.value = [teamPair]
+    } else {
+      // Multiple matches with shuffling
+      const shuffled = [...playersForPairing].sort(() => Math.random() - 0.5)
+      const pairs = createMultipleTeamPairs(shuffled, numberOfMatches)
+      generatedTeams.value = pairs
+    }
+  } catch (error) {
+    console.error('Error regenerating teams:', error)
+    alert('Failed to regenerate teams. Please try again.')
   }
 }
 
@@ -120,6 +160,14 @@ computed(() => {
           :disabled="selectedPlayers.length < 2"
         >
           Generate Teams
+        </button>
+        <button
+          v-if="generatedTeams.length > 0"
+          @click="regenerateTeams"
+          class="btn btn--accent"
+          :disabled="selectedPlayers.length < 2"
+        >
+          🎲 Mix Teams
         </button>
       </div>
     </div>

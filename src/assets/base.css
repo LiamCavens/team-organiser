@@ -5,41 +5,41 @@
   --secondary-dark: #2d2d2d;
   --tertiary-dark: #3a3a3a;
   --quaternary-dark: #4a4a4a;
-  
+
   /* Customizable Accent Colors */
-  --accent-primary: #22c55e;    /* Default green */
+  --accent-primary: #22c55e; /* Default green */
   --accent-primary-hover: #16a34a;
   --accent-primary-light: rgba(34, 197, 94, 0.1);
   --accent-primary-border: rgba(34, 197, 94, 0.3);
-  
+
   /* Text Colors */
   --text-primary: #ffffff;
   --text-secondary: #e5e5e5;
   --text-muted: #a3a3a3;
   --text-disabled: #666666;
-  
+
   /* Background Colors */
   --bg-primary: var(--primary-dark);
   --bg-secondary: var(--secondary-dark);
   --bg-tertiary: var(--tertiary-dark);
   --bg-surface: var(--quaternary-dark);
-  
+
   /* Border Colors */
   --border-primary: #404040;
   --border-secondary: #525252;
   --border-accent: var(--accent-primary-border);
-  
+
   /* Status Colors */
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
   --info: #3b82f6;
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
-  
+
   /* Spacing */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
@@ -47,13 +47,13 @@
   --space-lg: 1.5rem;
   --space-xl: 2rem;
   --space-2xl: 3rem;
-  
+
   /* Border Radius */
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
-  
+
   /* Transitions */
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
@@ -61,35 +61,35 @@
 }
 
 /* Alternative Accent Color Themes */
-[data-accent="blue"] {
+[data-accent='blue'] {
   --accent-primary: #3b82f6;
   --accent-primary-hover: #2563eb;
   --accent-primary-light: rgba(59, 130, 246, 0.1);
   --accent-primary-border: rgba(59, 130, 246, 0.3);
 }
 
-[data-accent="purple"] {
+[data-accent='purple'] {
   --accent-primary: #8b5cf6;
   --accent-primary-hover: #7c3aed;
   --accent-primary-light: rgba(139, 92, 246, 0.1);
   --accent-primary-border: rgba(139, 92, 246, 0.3);
 }
 
-[data-accent="orange"] {
+[data-accent='orange'] {
   --accent-primary: #f97316;
   --accent-primary-hover: #ea580c;
   --accent-primary-light: rgba(249, 115, 22, 0.1);
   --accent-primary-border: rgba(249, 115, 22, 0.3);
 }
 
-[data-accent="red"] {
+[data-accent='red'] {
   --accent-primary: #ef4444;
   --accent-primary-hover: #dc2626;
   --accent-primary-light: rgba(239, 68, 68, 0.1);
   --accent-primary-border: rgba(239, 68, 68, 0.3);
 }
 
-[data-accent="cyan"] {
+[data-accent='cyan'] {
   --accent-primary: #06b6d4;
   --accent-primary-hover: #0891b2;
   --accent-primary-light: rgba(6, 182, 212, 0.1);
@@ -109,7 +109,9 @@ body {
   min-height: 100vh;
   color: var(--text-primary);
   background: var(--bg-primary);
-  transition: color var(--transition-normal), background-color var(--transition-normal);
+  transition:
+    color var(--transition-normal),
+    background-color var(--transition-normal);
   line-height: 1.6;
   font-family:
     Inter,
@@ -167,6 +169,28 @@ body {
 .btn--primary:hover {
   background: var(--accent-primary-hover);
   border-color: var(--accent-primary-hover);
+}
+
+.btn--secondary {
+  background: var(--bg-surface);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
+}
+
+.btn--secondary:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+}
+
+.btn--accent {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+.btn--accent:hover {
+  background: #059669;
+  border-color: #059669;
 }
 
 .card {
