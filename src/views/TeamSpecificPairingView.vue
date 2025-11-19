@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@vue/apollo-composable'
+import { useDraggable } from '@vueuse/core'
 import { GET_TEAM } from '../graphql/queries'
 import {
   findBestTeamBalance,
@@ -20,6 +21,13 @@ const teamId = computed(() => parseInt(route.params.teamId as string))
 // State for pairing
 const selectedPlayerIds = ref<number[]>([])
 const generatedTeams = ref<TeamPair[]>([])
+const editableTeams = ref<{
+  team1: Player[]
+  team2: Player[]
+  substituteInfo?: TeamPair['substituteInfo']
+} | null>(null)
+const draggedPlayer = ref<Player | null>(null)
+const isDragging = ref(false)
 
 // GraphQL query to get team data
 const { result, loading, error, refetch } = useQuery(
@@ -107,6 +115,13 @@ const generateTeams = () => {
   try {
     const teamPair = findBestTeamBalance(playersForPairing)
     generatedTeams.value = [teamPair]
+
+    // Initialize editable teams
+    editableTeams.value = {
+      team1: [...teamPair.team1],
+      team2: [...teamPair.team2],
+      substituteInfo: teamPair.substituteInfo,
+    }
   } catch (error) {
     console.error('Error generating teams:', error)
     alert('Failed to generate teams. Please try again.')
@@ -126,6 +141,13 @@ const regenerateTeams = () => {
     // Use randomized generation with ±5 rating variation for more diverse teams
     const teamPair = findRandomizedTeamBalance(playersForPairing, 5)
     generatedTeams.value = [teamPair]
+
+    // Update editable teams
+    editableTeams.value = {
+      team1: [...teamPair.team1],
+      team2: [...teamPair.team2],
+      substituteInfo: teamPair.substituteInfo,
+    }
   } catch (error) {
     console.error('Error regenerating teams:', error)
     alert('Failed to regenerate teams. Please try again.')
@@ -136,11 +158,104 @@ const goBack = () => {
   router.push('/')
 }
 
+// Helper functions for substitute highlighting
 const isSubstitutePlayer = (teamPair: TeamPair, player: Player) => {
   if (!teamPair.substituteInfo) {
     return false
   }
   return teamPair.substituteInfo.substitutePair.substitute.id === player.id
+}
+
+// Drag and drop handlers
+const handleDragStart = (event: DragEvent, player: Player) => {
+  if (!event.dataTransfer) return
+
+  draggedPlayer.value = player
+  isDragging.value = true
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', player.id.toString())
+
+  // Add a custom drag image
+  const dragElement = event.target as HTMLElement
+  dragElement.style.opacity = '0.5'
+}
+
+const handleDragEnd = (event: DragEvent) => {
+  const dragElement = event.target as HTMLElement
+  dragElement.style.opacity = '1'
+  isDragging.value = false
+  draggedPlayer.value = null
+}
+
+const handleDragOver = (event: DragEvent) => {
+  event.preventDefault()
+  event.dataTransfer!.dropEffect = 'move'
+}
+
+const handleDrop = (event: DragEvent, targetTeam: 'team1' | 'team2') => {
+  event.preventDefault()
+
+  if (!draggedPlayer.value || !editableTeams.value) return
+
+  const sourceTeam = editableTeams.value.team1.find((p) => p.id === draggedPlayer.value!.id)
+    ? 'team1'
+    : 'team2'
+
+  // Don't do anything if dropping on the same team
+  if (sourceTeam === targetTeam) return
+
+  // Remove player from source team
+  if (sourceTeam === 'team1') {
+    editableTeams.value.team1 = editableTeams.value.team1.filter(
+      (p) => p.id !== draggedPlayer.value!.id,
+    )
+  } else {
+    editableTeams.value.team2 = editableTeams.value.team2.filter(
+      (p) => p.id !== draggedPlayer.value!.id,
+    )
+  }
+
+  // Add player to target team
+  if (targetTeam === 'team1') {
+    editableTeams.value.team1.push(draggedPlayer.value)
+  } else {
+    editableTeams.value.team2.push(draggedPlayer.value)
+  }
+
+  // Update substitute info if the substitute or rotation player was moved
+  updateSubstituteInfo()
+}
+
+// Update substitute information after drag and drop
+const updateSubstituteInfo = () => {
+  if (!editableTeams.value?.substituteInfo) return
+
+  const { substitutePair } = editableTeams.value.substituteInfo
+  const substitutePlayer = substitutePair.substitute
+
+  // Find which team the substitute is now in
+  const substituteInTeam1 = editableTeams.value.team1.find((p) => p.id === substitutePlayer.id)
+  const substituteInTeam2 = editableTeams.value.team2.find((p) => p.id === substitutePlayer.id)
+
+  if (substituteInTeam1) {
+    // Substitute is in team 1, update team with sub
+    editableTeams.value.substituteInfo.teamWithSub = 1
+  } else if (substituteInTeam2) {
+    // Substitute is in team 2, update team with sub
+    editableTeams.value.substituteInfo.teamWithSub = 2
+  }
+}
+
+// Reset to original generated teams
+const resetTeams = () => {
+  if (generatedTeams.value.length > 0) {
+    const originalTeam = generatedTeams.value[0]!
+    editableTeams.value = {
+      team1: [...originalTeam.team1],
+      team2: [...originalTeam.team2],
+      substituteInfo: originalTeam.substituteInfo,
+    }
+  }
 }
 </script>
 
@@ -235,7 +350,17 @@ const isSubstitutePlayer = (teamPair: TeamPair, player: Player) => {
 
       <!-- Generated Teams -->
       <div v-if="generatedTeams.length > 0" class="generated-teams">
-        <h3 class="section-title">Generated Teams</h3>
+        <div class="teams-header">
+          <h3 class="section-title">Generated Teams</h3>
+          <div class="teams-actions">
+            <button v-if="editableTeams" @click="resetTeams" class="btn btn--secondary">
+              Reset Teams
+            </button>
+            <span v-if="editableTeams" class="drag-hint"
+              >💡 Drag players between teams to adjust</span
+            >
+          </div>
+        </div>
 
         <div class="teams-container">
           <div v-for="(teamPair, index) in generatedTeams" :key="index" class="team-pair">
@@ -252,57 +377,116 @@ const isSubstitutePlayer = (teamPair: TeamPair, player: Player) => {
             </div>
 
             <div class="teams-display">
-              <div class="team">
+              <div class="team" @dragover="handleDragOver" @drop="(e) => handleDrop(e, 'team1')">
                 <h5 class="team-title">Team A</h5>
                 <div class="team-stats">
-                  <span>Total: {{ calculateTeamStats(teamPair.team1).totalRating }}</span>
-                  <span>Avg: {{ calculateTeamStats(teamPair.team1).averageRating }}</span>
+                  <span
+                    >Total:
+                    {{
+                      editableTeams
+                        ? calculateTeamStats(editableTeams.team1).totalRating
+                        : calculateTeamStats(teamPair.team1).totalRating
+                    }}</span
+                  >
+                  <span
+                    >Avg:
+                    {{
+                      editableTeams
+                        ? calculateTeamStats(editableTeams.team1).averageRating
+                        : calculateTeamStats(teamPair.team1).averageRating
+                    }}</span
+                  >
                 </div>
                 <div class="team-players">
                   <div
-                    v-for="player in teamPair.team1"
+                    v-for="player in editableTeams ? editableTeams.team1 : teamPair.team1"
                     :key="player.id"
                     :class="[
                       'team-player',
+                      'draggable-player',
                       {
-                        'substitute-highlight': isSubstitutePlayer(teamPair, player),
+                        'substitute-highlight': editableTeams
+                          ? editableTeams.substituteInfo &&
+                            editableTeams.substituteInfo.substitutePair.substitute.id === player.id
+                          : isSubstitutePlayer(teamPair, player),
+                        'is-dragging': draggedPlayer && draggedPlayer.id === player.id,
                       },
                     ]"
+                    draggable="true"
+                    @dragstart="(e) => handleDragStart(e, player)"
+                    @dragend="handleDragEnd"
                   >
                     <span>{{ player.name }}</span>
-
-                    <span v-if="isSubstitutePlayer(teamPair, player)" class="rotation-indicator"
+                    <span
+                      v-if="
+                        editableTeams
+                          ? editableTeams.substituteInfo &&
+                            editableTeams.substituteInfo.substitutePair.substitute.id === player.id
+                          : isSubstitutePlayer(teamPair, player)
+                      "
+                      class="rotation-indicator"
                       >🔄</span
                     >
                     <span>{{ player.rating }}</span>
+                    <!-- <span class="drag-handle">⋮⋮</span> -->
                   </div>
                 </div>
               </div>
 
               <div class="vs-divider">VS</div>
 
-              <div class="team">
+              <div class="team" @dragover="handleDragOver" @drop="(e) => handleDrop(e, 'team2')">
                 <h5 class="team-title">Team B</h5>
                 <div class="team-stats">
-                  <span>Total: {{ calculateTeamStats(teamPair.team2).totalRating }}</span>
-                  <span>Avg: {{ calculateTeamStats(teamPair.team2).averageRating }}</span>
+                  <span
+                    >Total:
+                    {{
+                      editableTeams
+                        ? calculateTeamStats(editableTeams.team2).totalRating
+                        : calculateTeamStats(teamPair.team2).totalRating
+                    }}</span
+                  >
+                  <span
+                    >Avg:
+                    {{
+                      editableTeams
+                        ? calculateTeamStats(editableTeams.team2).averageRating
+                        : calculateTeamStats(teamPair.team2).averageRating
+                    }}</span
+                  >
                 </div>
                 <div class="team-players">
                   <div
-                    v-for="player in teamPair.team2"
+                    v-for="player in editableTeams ? editableTeams.team2 : teamPair.team2"
                     :key="player.id"
                     :class="[
                       'team-player',
+                      'draggable-player',
                       {
-                        'substitute-highlight': isSubstitutePlayer(teamPair, player),
+                        'substitute-highlight': editableTeams
+                          ? editableTeams.substituteInfo &&
+                            editableTeams.substituteInfo.substitutePair.substitute.id === player.id
+                          : isSubstitutePlayer(teamPair, player),
+                        'is-dragging': draggedPlayer && draggedPlayer.id === player.id,
                       },
                     ]"
+                    draggable="true"
+                    @dragstart="(e) => handleDragStart(e, player)"
+                    @dragend="handleDragEnd"
                   >
                     <span>{{ player.name }}</span>
                     <span>{{ player.rating }}</span>
-                    <span v-if="isSubstitutePlayer(teamPair, player)" class="substitute-indicator"
+                    <span
+                      v-if="
+                        editableTeams
+                          ? editableTeams.substituteInfo &&
+                            editableTeams.substituteInfo.substitutePair.substitute.id === player.id
+                          : isSubstitutePlayer(teamPair, player)
+                      "
+                      class="substitute-indicator"
                       >📥</span
                     >
+                    <span class="drag-handle">⋮⋮</span>
                   </div>
                 </div>
               </div>
@@ -354,6 +538,27 @@ const isSubstitutePlayer = (teamPair: TeamPair, player: Player) => {
   margin: 0 0 var(--space-lg) 0;
   padding-bottom: var(--space-sm);
   border-bottom: 2px solid var(--accent-primary);
+}
+
+.teams-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-lg);
+  gap: var(--space-md);
+}
+
+.teams-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.drag-hint {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .game-format-card {
@@ -527,6 +732,48 @@ const isSubstitutePlayer = (teamPair: TeamPair, player: Player) => {
   background: var(--bg-surface);
   border-radius: var(--radius-sm);
   position: relative;
+  transition: all var(--transition-fast);
+}
+
+.draggable-player {
+  cursor: grab;
+  user-select: none;
+}
+
+.draggable-player:hover {
+  background: var(--bg-tertiary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.draggable-player:active {
+  cursor: grabbing;
+}
+
+.is-dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+
+.drag-handle {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.draggable-player:hover .drag-handle {
+  opacity: 1;
+}
+
+.team {
+  transition: all var(--transition-fast);
+  border: 2px dashed transparent;
+}
+
+.team:hover {
+  border-color: var(--accent-primary-border);
+  background: var(--accent-primary-light);
 }
 
 /* .rotation-highlight {
@@ -703,6 +950,19 @@ const isSubstitutePlayer = (teamPair: TeamPair, player: Player) => {
   .format-display {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .teams-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .teams-actions {
+    justify-content: center;
+  }
+
+  .drag-hint {
+    text-align: center;
   }
 
   .substitute-pair {
