@@ -32,6 +32,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@vue/apollo-composable": "^4.2.2",
     "@vueuse/core": "^14.0.0",
+    "@yaacovcr/transform": "^0.0.8",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
