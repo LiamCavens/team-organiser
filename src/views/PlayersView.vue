@@ -23,6 +23,10 @@ interface Player {
 const showCreateModal = ref(false)
 const editingPlayer = ref<Player | null>(null)
 
+// Sorting state
+const sortBy = ref<'name' | 'rating'>('name')
+const sortOrder = ref<'asc' | 'desc'>('asc')
+
 // Authentication check
 const { isAuthenticated, isDemoMode, enterDemoMode } = useAuth()
 const demo = useDemoDataStore()
@@ -35,10 +39,41 @@ const { mutate: createPlayer } = useMutation(CREATE_PLAYER)
 const { mutate: updatePlayer } = useMutation(UPDATE_PLAYER)
 const { mutate: deletePlayer } = useMutation(DELETE_PLAYER)
 
-const players = computed(() => {
+const rawPlayers = computed(() => {
   if (isDemoMode.value) return demo.players
   return result.value?.players || []
 })
+
+const players = computed(() => {
+  const playersCopy = [...rawPlayers.value]
+
+  // Sort by selected field
+  playersCopy.sort((a, b) => {
+    let comparison = 0
+
+    if (sortBy.value === 'name') {
+      comparison = a.name.localeCompare(b.name)
+    } else {
+      comparison = a.rating - b.rating
+    }
+
+    // Apply sort order
+    return sortOrder.value === 'asc' ? comparison : -comparison
+  })
+
+  return playersCopy
+})
+
+const toggleSort = (field: 'name' | 'rating') => {
+  if (sortBy.value === field) {
+    // Toggle order if clicking same field
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    // Switch to new field with ascending order
+    sortBy.value = field
+    sortOrder.value = 'asc'
+  }
+}
 
 const handleEditPlayer = (player: Player) => {
   editingPlayer.value = player
@@ -142,7 +177,28 @@ watch(
   <div v-else class="players-view">
     <div class="players-view__header">
       <h2 class="players-view__title">Players Management</h2>
-      <button @click="showCreateModal = true" class="btn btn--primary">+ Add Player</button>
+
+      <div class="header-actions">
+        <div class="sort-controls">
+          <label class="sort-label">Sort by:</label>
+          <button
+            @click="toggleSort('name')"
+            class="btn btn--small"
+            :class="{ 'btn--active': sortBy === 'name' }"
+          >
+            Name {{ sortBy === 'name' ? (sortOrder === 'asc' ? '↑' : '↓') : '' }}
+          </button>
+          <button
+            @click="toggleSort('rating')"
+            class="btn btn--small"
+            :class="{ 'btn--active': sortBy === 'rating' }"
+          >
+            Rating {{ sortBy === 'rating' ? (sortOrder === 'asc' ? '↑' : '↓') : '' }}
+          </button>
+        </div>
+
+        <button @click="showCreateModal = true" class="btn btn--primary">+ Add Player</button>
+      </div>
     </div>
 
     <!-- Loading State -->
