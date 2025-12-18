@@ -58,6 +58,18 @@
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
   --transition-slow: 0.35s ease;
+
+  /* Legacy/Alternative Color Variable Names (for component compatibility) */
+  --color-background: var(--bg-primary);
+  --color-background-soft: var(--bg-tertiary);
+  --color-background-mute: var(--bg-secondary);
+  --color-text: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-heading: var(--text-primary);
+  --color-border: var(--border-primary);
+  --color-accent: var(--accent-primary);
+  --color-accent-dark: var(--accent-primary-hover);
+  --accent-rgb: 34, 197, 94; /* RGB values for --accent-primary */
 }
 
 /* Alternative Accent Color Themes */
