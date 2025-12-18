@@ -27,14 +27,10 @@ const editingPlayer = ref<Player | null>(null)
 const { isAuthenticated, isDemoMode, enterDemoMode } = useAuth()
 const demo = useDemoDataStore()
 
-// GraphQL queries and mutations - only execute when authenticated
-const { result, loading, error, refetch } = useQuery(
-  GET_PLAYERS,
-  {},
-  {
-    enabled: isAuthenticated,
-  },
-)
+// GraphQL queries and mutations - only execute when authenticated AND not in demo mode
+const { result, loading, error, refetch } = useQuery(GET_PLAYERS, {}, () => ({
+  enabled: isAuthenticated.value && !isDemoMode.value,
+}))
 const { mutate: createPlayer } = useMutation(CREATE_PLAYER)
 const { mutate: updatePlayer } = useMutation(UPDATE_PLAYER)
 const { mutate: deletePlayer } = useMutation(DELETE_PLAYER)

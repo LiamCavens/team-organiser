@@ -33,14 +33,10 @@ const router = useRouter()
 const { isAuthenticated, isDemoMode, enterDemoMode } = useAuth()
 const demo = useDemoDataStore()
 
-// GraphQL queries and mutations - only execute when authenticated
-const { result, loading, error, refetch } = useQuery(
-  GET_TEAMS,
-  {},
-  {
-    enabled: isAuthenticated,
-  },
-)
+// GraphQL queries and mutations - only execute when authenticated AND not in demo mode
+const { result, loading, error, refetch } = useQuery(GET_TEAMS, {}, () => ({
+  enabled: isAuthenticated.value && !isDemoMode.value,
+}))
 const { mutate: createTeam } = useMutation(CREATE_TEAM)
 const { mutate: updateTeam } = useMutation(UPDATE_TEAM)
 const { mutate: deleteTeam } = useMutation(DELETE_TEAM)
