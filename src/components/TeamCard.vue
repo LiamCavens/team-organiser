@@ -125,7 +125,7 @@ const averageRating = computed(() => {
 }
 
 .team-card__name {
-  line-height: 1rem;
+  line-height: 1.5rem;
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--text-primary);

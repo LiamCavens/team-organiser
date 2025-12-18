@@ -78,6 +78,13 @@ interface MockData {
  */
 async function main() {
   try {
+    // Prevent accidental seeding in production environments.
+    // To run locally, set ALLOW_SEED=true.
+    if (process.env.ALLOW_SEED !== 'true') {
+      console.log('⛔ Seeding is disabled. Set ALLOW_SEED=true to run this script.')
+      process.exit(0)
+    }
+
     console.log('🌱 Starting database seeding...')
 
     // STEP 1: Read mock data from external JSON file

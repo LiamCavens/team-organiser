@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
 import {
   GET_PLAYERS_NOT_IN_TEAM,
   ADD_PLAYER_TO_TEAM,
   REMOVE_PLAYER_FROM_TEAM,
 } from '../graphql/queries'
+import { useAuth } from '../composables/useAuth'
 
 interface Player {
   id: number
@@ -28,7 +29,6 @@ interface Team {
 const props = defineProps<{
   team: Team
 }>()
-
 const emit = defineEmits<{
   close: []
   updated: []
@@ -38,13 +38,33 @@ const searchQuery = ref('')
 const addingPlayerId = ref<number | null>(null)
 const removingPlayerId = ref<number | null>(null)
 
+const { isDemoMode } = useAuth()
+
 // Get players not in this team
+// In demo mode we should never initialize this query (avoids unauthenticated calls in dev).
+const availablePlayersQueryEnabled = computed(() => !isDemoMode.value)
 const {
   result: availableResult,
   loading: loadingAvailable,
   error: errorAvailable,
   refetch: refetchAvailablePlayers,
-} = useQuery(GET_PLAYERS_NOT_IN_TEAM, { teamId: props.team.id })
+} = useQuery(
+  GET_PLAYERS_NOT_IN_TEAM,
+  () => ({ teamId: props.team.id }),
+  () => ({ enabled: availablePlayersQueryEnabled.value }),
+)
+
+// Disable API requests in demo mode.
+watch(
+  () => isDemoMode.value,
+  (demo) => {
+    if (demo) {
+      // Best-effort: clear any in-flight data by refetching nothing.
+      // (Apollo composable doesn't support dynamically changing enabled after create in all versions.)
+      searchQuery.value = ''
+    }
+  },
+)
 
 // Mutations
 const { mutate: addPlayerToTeam } = useMutation(ADD_PLAYER_TO_TEAM)
@@ -63,6 +83,10 @@ const filteredAvailablePlayers = computed(() => {
 })
 
 const addPlayer = async (playerId: number) => {
+  if (isDemoMode.value) {
+    alert('Demo mode: editing team players is disabled.')
+    return
+  }
   addingPlayerId.value = playerId
 
   try {
@@ -83,6 +107,10 @@ const addPlayer = async (playerId: number) => {
 }
 
 const removePlayer = async (playerId: number) => {
+  if (isDemoMode.value) {
+    alert('Demo mode: editing team players is disabled.')
+    return
+  }
   removingPlayerId.value = playerId
 
   try {
@@ -106,115 +134,174 @@ const removePlayer = async (playerId: number) => {
 watch(
   () => props.team.id,
   () => {
-    refetchAvailablePlayers()
+    if (!isDemoMode.value) refetchAvailablePlayers()
   },
 )
 
 // Refresh available players
 const handleRefreshClick = () => {
+  if (isDemoMode.value) return
   refetchAvailablePlayers({ teamId: props.team.id })
 }
+
+// Modal UX: close on Escape and prevent background scroll while open
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') emit('close')
+}
+
+const previousBodyOverflow = ref<string | null>(null)
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+  previousBodyOverflow.value = document.body.style.overflow
+  document.body.style.overflow = 'hidden'
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown)
+  document.body.style.overflow = previousBodyOverflow.value ?? ''
+})
 </script>
 
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal modal--large">
-      <div class="modal__header">
-        <h3 class="modal__title">Manage Players - {{ team.name }}</h3>
-        <button @click="$emit('close')" class="modal__close">✕</button>
-      </div>
-
-      <div class="modal__content">
-        <!-- Current Team Players -->
-        <div class="section">
-          <h4 class="section__title">Team Players ({{ team.players.length }})</h4>
-
-          <div v-if="team.players.length === 0" class="empty-state">
-            No players in this team yet.
-          </div>
-
-          <div v-else class="players-grid">
-            <div v-for="player in team.players" :key="player.id" class="player-card">
-              <div class="player-info">
-                <span class="player-name">{{ player.name }}</span>
-                <span class="player-rating">{{ player.rating }}</span>
-              </div>
-              <button
-                @click="removePlayer(player.id)"
-                class="btn btn--small btn--danger"
-                :disabled="removingPlayerId === player.id"
-              >
-                {{ removingPlayerId === player.id ? '...' : 'Remove' }}
-              </button>
-            </div>
-          </div>
+  <Teleport to="body">
+    <div class="modal-overlay" role="dialog" aria-modal="true" @click.self="$emit('close')">
+      <div class="modal modal--large">
+        <div class="modal__header">
+          <h3 class="modal__title">Manage Players - {{ team.name }}</h3>
+          <button @click="$emit('close')" class="modal__close btn btn--primary">Close</button>
         </div>
 
-        <!-- Available Players -->
-        <div class="section">
-          <h4 class="section__title">
-            Available Players
-
-            <button @click="handleRefreshClick" class="btn btn--small" :disabled="loadingAvailable">
-              {{ loadingAvailable ? 'Loading...' : 'Refresh' }}
-            </button>
-          </h4>
-
-          <!-- Search -->
-          <div class="search-box">
-            <input
-              v-model="searchQuery"
-              type="text"
-              class="input"
-              placeholder="Search players..."
-            />
+        <div class="modal__content">
+          <div v-if="isDemoMode" class="alert alert--info">
+            Demo mode is read-only. Sign in to add or remove players from teams.
           </div>
 
-          <div v-if="loadingAvailable" class="loading">
-            <div class="loading__spinner"></div>
-            <p>Loading available players...</p>
-          </div>
+          <!-- Current Team Players -->
+          <div class="section">
+            <h4 class="section__title">Team Players ({{ team.players.length }})</h4>
 
-          <div v-else-if="errorAvailable" class="error">
-            Error loading players: {{ errorAvailable.message }}
-          </div>
+            <div v-if="team.players.length === 0" class="empty-state">
+              No players in this team yet.
+            </div>
 
-          <div v-else-if="filteredAvailablePlayers.length === 0" class="empty-state">
-            {{
-              searchQuery
-                ? 'No players match your search.'
-                : 'All players are already in this team.'
-            }}
-          </div>
-
-          <div v-else class="players-grid">
-            <div v-for="player in filteredAvailablePlayers" :key="player.id" class="player-card">
-              <div class="player-info">
-                <span class="player-name">{{ player.name }}</span>
-                <span class="player-rating">{{ player.rating }}</span>
-                <div v-if="player.teamCount && player.teamCount > 0" class="player-teams">
-                  In {{ player.teamCount }} team{{ player.teamCount > 1 ? 's' : '' }}
+            <div v-else class="players-grid">
+              <div v-for="player in team.players" :key="player.id" class="player-card">
+                <div class="player-info">
+                  <span class="player-name">{{ player.name }}</span>
+                  <span class="player-rating">{{ player.rating }}</span>
                 </div>
+                <button
+                  @click="removePlayer(player.id)"
+                  class="btn btn--small btn--danger"
+                  :disabled="isDemoMode || removingPlayerId === player.id"
+                >
+                  {{ removingPlayerId === player.id ? '...' : 'Remove' }}
+                </button>
               </div>
+            </div>
+          </div>
+
+          <!-- Available Players -->
+          <div v-if="!isDemoMode" class="section">
+            <h4 class="section__title">
+              Available Players
+
               <button
-                @click="addPlayer(player.id)"
-                class="btn btn--small btn--primary"
-                :disabled="addingPlayerId === player.id"
+                @click="handleRefreshClick"
+                class="btn btn--small"
+                :disabled="loadingAvailable"
               >
-                {{ addingPlayerId === player.id ? '...' : 'Add' }}
+                {{ loadingAvailable ? 'Loading...' : 'Refresh' }}
               </button>
+            </h4>
+
+            <!-- Search -->
+            <div class="search-box">
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="input"
+                placeholder="Search players..."
+              />
+            </div>
+
+            <div v-if="loadingAvailable" class="loading">
+              <div class="loading__spinner"></div>
+              <p>Loading available players...</p>
+            </div>
+
+            <div v-else-if="errorAvailable" class="error">
+              Error loading players: {{ errorAvailable.message }}
+            </div>
+
+            <div v-else-if="filteredAvailablePlayers.length === 0" class="empty-state">
+              {{
+                searchQuery
+                  ? 'No players match your search.'
+                  : 'All players are already in this team.'
+              }}
+            </div>
+
+            <div v-else class="players-grid">
+              <div v-for="player in filteredAvailablePlayers" :key="player.id" class="player-card">
+                <div class="player-info">
+                  <span class="player-name">{{ player.name }}</span>
+                  <span class="player-rating">{{ player.rating }}</span>
+                  <div v-if="player.teamCount && player.teamCount > 0" class="player-teams">
+                    In {{ player.teamCount }} team{{ player.teamCount > 1 ? 's' : '' }}
+                  </div>
+                </div>
+                <button
+                  @click="addPlayer(player.id)"
+                  class="btn btn--small btn--primary"
+                  :disabled="addingPlayerId === player.id"
+                >
+                  {{ addingPlayerId === player.id ? '...' : 'Add' }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.modal {
+  width: 100%;
+  background-color: var(--bg-surface);
+  border-radius: var(--radius-lg);
+}
+
 .modal--large {
   max-width: 800px;
   max-height: 90vh;
+}
+
+.modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.modal__close {
+  padding: var(--space-xs) var(--space-sm);
 }
 
 .modal__content {

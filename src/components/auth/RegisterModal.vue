@@ -134,6 +134,10 @@
 import { ref, reactive, computed } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 import { REGISTER_MUTATION } from '../../graphql/queries'
+import { initNetlifyIdentity, openNetlifySignup } from '../../auth/netlifyIdentity'
+
+const isProduction = import.meta.env.PROD
+const isNetlifyIdentityEnabled = !!import.meta.env.VITE_NETLIFY_IDENTITY_ENABLED
 
 // Emits
 const emit = defineEmits<{
@@ -265,6 +269,13 @@ const validateForm = () => {
 
 // Form submission
 const handleSubmit = async () => {
+  // In production on Netlify, we want Netlify Identity to own signup.
+  if (isProduction && isNetlifyIdentityEnabled) {
+    initNetlifyIdentity()
+    openNetlifySignup()
+    return
+  }
+
   if (!validateForm()) return
 
   isLoading.value = true

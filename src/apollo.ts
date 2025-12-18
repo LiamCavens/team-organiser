@@ -3,21 +3,42 @@ import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 import { DefaultApolloClient } from '@vue/apollo-composable'
 import type { App } from 'vue'
+import { getNetlifyAccessToken, initNetlifyIdentity } from './auth/netlifyIdentity'
 
 // Create HTTP link to GraphQL server
 const httpLink = createHttpLink({
-  uri: 'http://localhost:4000',
+  uri:
+    import.meta.env.VITE_GRAPHQL_URL ||
+    (import.meta.env.PROD ? '/api/graphql' : 'http://localhost:4000'),
 })
 
 // Create auth link for adding JWT tokens to requests
 const authLink = setContext((_, { headers }) => {
+  const isDemoMode = localStorage.getItem('demoMode') === 'true'
+
+  if (isDemoMode) {
+    return {
+      headers: {
+        ...headers,
+        authorization: '',
+      },
+    }
+  }
+
+  // Ensure Netlify Identity is set up (no-op after first call)
+  initNetlifyIdentity()
+
+  // Prefer Netlify Identity access token when present
+  const netlifyToken = getNetlifyAccessToken()
+
   // Get token from localStorage
   const token = localStorage.getItem('token')
+  const chosenToken = netlifyToken || token
 
   return {
     headers: {
       ...headers,
-      authorization: token ? `Bearer ${token}` : '',
+      authorization: chosenToken ? `Bearer ${chosenToken}` : '',
     },
   }
 })

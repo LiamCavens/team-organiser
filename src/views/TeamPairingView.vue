@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue'
 import { useQuery } from '@vue/apollo-composable'
 import { GET_PLAYERS } from '../graphql/queries'
+import { useAuth } from '../composables/useAuth'
+import { useDemoDataStore } from '../stores/demoData'
 import {
   findBestTeamBalance,
   findRandomizedTeamBalance,
@@ -17,9 +19,17 @@ const balanceMode = ref('balanced')
 const generatedTeams = ref<TeamPair[]>([])
 
 // GraphQL query
-const { result, loading, error, refetch } = useQuery(GET_PLAYERS)
+const { isDemoMode } = useAuth()
+const demo = useDemoDataStore()
 
-const players = computed(() => result.value?.players || [])
+const { result, loading, error, refetch } = useQuery(GET_PLAYERS, undefined, () => ({
+  enabled: !isDemoMode.value,
+}))
+
+const players = computed(() => {
+  if (isDemoMode.value) return demo.players
+  return result.value?.players || []
+})
 
 const selectedPlayers = computed(() =>
   players.value.filter((player: Player) => selectedPlayerIds.value.includes(player.id)),

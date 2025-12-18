@@ -99,23 +99,39 @@
 
       <!-- Demo Credentials Helper -->
       <div class="demo-credentials">
-        <h4>Demo Accounts:</h4>
+        <h4>Quick options:</h4>
         <div class="demo-buttons">
           <button
+            v-if="isNetlifyIdentityEnabled"
+            type="button"
+            class="demo-button"
+            @click="signInWithNetlify"
+            :disabled="isLoading"
+          >
+            Sign in with Email / Google
+          </button>
+
+          <button type="button" class="demo-button" @click="runDemo" :disabled="isLoading">
+            Try Demo (no account)
+          </button>
+
+          <button
+            v-if="!isProduction"
             type="button"
             class="demo-button"
             @click="fillDemoCredentials('admin')"
             :disabled="isLoading"
           >
-            Admin (admin / admin)
+            Dev seed: Admin (admin / admin)
           </button>
           <button
+            v-if="!isProduction"
             type="button"
             class="demo-button"
             @click="fillDemoCredentials('user')"
             :disabled="isLoading"
           >
-            User (coach1 / password123)
+            Dev seed: User (coach1 / password123)
           </button>
         </div>
       </div>
@@ -143,6 +159,12 @@ import { ref, reactive, computed } from 'vue'
 import BaseModal from '../ui/BaseModal.vue'
 import { useMutation } from '@vue/apollo-composable'
 import { LOGIN_MUTATION } from '../../graphql/queries'
+import {
+  initNetlifyIdentity,
+  onNetlifyLogin,
+  openNetlifyLogin,
+  type NetlifyUser,
+} from '../../auth/netlifyIdentity'
 
 interface User {
   id: number
@@ -180,6 +202,9 @@ const showPassword = ref(false)
 const loginError = ref('')
 const loginSuccess = ref('')
 
+const isProduction = import.meta.env.PROD
+const isNetlifyIdentityEnabled = !!import.meta.env.VITE_NETLIFY_IDENTITY_ENABLED
+
 // Computed
 const isOpen = computed({
   get: () => props.modelValue,
@@ -194,6 +219,30 @@ const isFormValid = computed(() => {
 
 // Apollo mutation for real authentication
 const { mutate: loginMutate } = useMutation(LOGIN_MUTATION)
+
+// Setup Netlify Identity login handler (only active when enabled)
+if (isNetlifyIdentityEnabled) {
+  initNetlifyIdentity()
+  onNetlifyLogin((netlifyUser: NetlifyUser) => {
+    // We don't have a DB user from this app yet; treat as authenticated session.
+    // Backend will verify the JWT and scope data by netlify identity if/when implemented.
+    loginSuccess.value = `Signed in as ${netlifyUser.email || 'user'}`
+    emit('login-success', {
+      token: netlifyUser.token?.access_token || '',
+      user: {
+        id: -1,
+        username:
+          netlifyUser.user_metadata?.full_name ||
+          netlifyUser.user_metadata?.name ||
+          netlifyUser.email ||
+          'netlify-user',
+        role: 'USER',
+        email: netlifyUser.email,
+      },
+    })
+    setTimeout(() => closeModal(), 600)
+  })
+}
 
 // Methods
 const validateForm = (): boolean => {
@@ -226,6 +275,12 @@ const validateForm = (): boolean => {
 
 const handleSubmit = async () => {
   if (!validateForm()) return
+
+  // In production we'd prefer Netlify Identity; keep username/password flow for local dev.
+  if (isProduction) {
+    loginError.value = 'Use “Sign in with Email / Google” for production login.'
+    return
+  }
 
   isLoading.value = true
   loginError.value = ''
@@ -279,6 +334,27 @@ const handleSubmit = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+const signInWithNetlify = () => {
+  loginError.value = ''
+  loginSuccess.value = ''
+  openNetlifyLogin()
+}
+
+const runDemo = () => {
+  // Demo mode: does not call API; used for public preview without touching DB.
+  localStorage.setItem('demoMode', 'true')
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+
+  emit('login-success', {
+    // Important: demo mode must not set any token. A fake token like "demo" can
+    // accidentally get sent as `Authorization: Bearer demo...` and trigger auth errors.
+    token: '',
+    user: { id: 0, username: 'Demo', role: 'USER', email: 'demo@local' },
+  })
+  closeModal()
 }
 
 const fillDemoCredentials = (type: 'admin' | 'user') => {

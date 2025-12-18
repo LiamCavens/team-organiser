@@ -1,0 +1,31 @@
+{
+  "team": {
+    "name": "Brazil World Cup Squad 2002"
+  },
+  "players": [
+    { "name": "Marcos", "rating": 84 },
+    { "name": "Dida", "rating": 86 },
+    { "name": "Rogério Ceni", "rating": 85 },
+
+    { "name": "Cafu", "rating": 90 },
+    { "name": "Roberto Carlos", "rating": 90 },
+    { "name": "Lúcio", "rating": 88 },
+    { "name": "Edmílson", "rating": 86 },
+    { "name": "Roque Júnior", "rating": 84 },
+    { "name": "Juninho Paulista", "rating": 83 },
+
+    { "name": "Gilberto Silva", "rating": 86 },
+    { "name": "Kleberson", "rating": 85 },
+    { "name": "Vampeta", "rating": 83 },
+
+    { "name": "Rivaldo", "rating": 92 },
+    { "name": "Ronaldinho", "rating": 91 },
+    { "name": "Kaká", "rating": 86 },
+
+    { "name": "Ronaldo", "rating": 94 },
+    { "name": "Ronaldinho Gaúcho", "rating": 92 },
+    { "name": "Denílson", "rating": 86 },
+    { "name": "Edílson", "rating": 84 },
+    { "name": "Luizão", "rating": 85 }
+  ]
+}

@@ -95,12 +95,37 @@ The application will be available at `http://localhost:5173` (or next available 
 
 ## Environment Configuration
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory (see `.env.example`):
 
 ```env
-DATABASE_URL="file:./prisma/dev.db"
+# Local dev / production DB (Neon Postgres)
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/DB?sslmode=require"
+
+# Legacy app JWT (used only by the local username/password auth flow)
 JWT_SECRET="your-secret-key"
+
+# Frontend config
+VITE_GRAPHQL_URL="http://localhost:4000"
+VITE_NETLIFY_IDENTITY_ENABLED="false"
 ```
+
+### Netlify (production) notes
+
+- This repo currently includes a local Node/Apollo server (`server/index.ts`) for development.
+- **Production** uses **Netlify Functions** for GraphQL + **Neon Postgres** for the database.
+- For a Netlify-hosted public preview, the recommended approach is:
+  - **Auth**: Netlify Identity (supports email/password and Google)
+  - **Demo**: run in “Demo mode” (no backend calls, no DB writes)
+
+This avoids deploying development seed data to production.
+
+### Netlify required environment variables
+
+Set these in **Netlify Site settings → Environment variables** (do not commit them):
+
+- `DATABASE_URL` (Neon Postgres connection string)
+- `NETLIFY_IDENTITY_JWT_SECRET` (from Netlify Identity settings)
+- `VITE_NETLIFY_IDENTITY_ENABLED=true`
 
 ## Database Schema
 

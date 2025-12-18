@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
 import ThemeSelector from './components/ThemeSelector.vue'
 import LoginModal from './components/auth/LoginModal.vue'
 import { useTheme } from './composables/useTheme'
 import { useAuth } from './composables/useAuth'
-import './utils/authTest' // Import auth testing utilities
+// Dev-only auth testing utilities (off by default)
+// To enable, run in the browser console: localStorage.setItem('ENABLE_AUTH_TESTS','true'); location.reload()
+if (import.meta.env.DEV && localStorage.getItem('ENABLE_AUTH_TESTS') === 'true') {
+  import('./utils/authTest')
+}
 
 interface User {
   id: number
@@ -18,7 +22,7 @@ interface User {
 useTheme()
 
 // Authentication state using the composable
-const { user, setAuth, clearAuth, debugAuth } = useAuth()
+const { user, setAuth, clearAuth, debugAuth, isDemoMode, enterDemoMode } = useAuth()
 const showLoginModal = ref(false)
 
 // Check for existing authentication on app start
@@ -37,10 +41,54 @@ const handleLogout = () => {
   clearAuth()
   console.log('👋 User logged out')
 }
+
+const onOpenLogin = () => {
+  showLoginModal.value = true
+}
+
+const onEnterDemo = () => {
+  enterDemoMode()
+}
+
+const exitDemo = () => {
+  clearAuth()
+}
+
+const signInFromBanner = () => {
+  // Leaving demo mode when user explicitly wants to sign in keeps things intuitive.
+  clearAuth()
+  showLoginModal.value = true
+}
+
+onMounted(() => {
+  window.addEventListener('app:open-login', onOpenLogin)
+  window.addEventListener('app:enter-demo', onEnterDemo)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('app:open-login', onOpenLogin)
+  window.removeEventListener('app:enter-demo', onEnterDemo)
+})
 </script>
 
 <template>
   <div id="app">
+    <div v-if="isDemoMode" class="demo-banner" role="status" aria-live="polite">
+      <div class="demo-banner__content">
+        <div class="demo-banner__text">
+          <strong>Demo mode</strong>
+          <span class="demo-banner__subtext">Local-only • read-only • no account needed</span>
+        </div>
+
+        <div class="demo-banner__actions">
+          <button type="button" class="demo-banner__btn" @click="signInFromBanner">Sign In</button>
+          <button type="button" class="demo-banner__btn demo-banner__btn--danger" @click="exitDemo">
+            Exit demo
+          </button>
+        </div>
+      </div>
+    </div>
+
     <header class="header">
       <div class="header__content">
         <h1 class="header__title">Football Organiser</h1>
@@ -72,6 +120,63 @@ const handleLogout = () => {
 </template>
 
 <style scoped>
+.demo-banner {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.demo-banner__content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.demo-banner__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text-primary);
+}
+
+.demo-banner__subtext {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.demo-banner__actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.demo-banner__btn {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.demo-banner__btn:hover {
+  background: var(--bg-secondary);
+  transform: translateY(-1px);
+}
+
+.demo-banner__btn--danger {
+  border-color: color-mix(in srgb, #e11d48 40%, var(--border-primary));
+}
+
+.demo-banner__btn--danger:hover {
+  background: color-mix(in srgb, #e11d48 12%, var(--bg-secondary));
+}
+
 .header {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-primary);

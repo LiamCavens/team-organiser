@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
 import { useRouter } from 'vue-router'
 import { GET_TEAMS, CREATE_TEAM, UPDATE_TEAM, DELETE_TEAM } from '../graphql/queries'
@@ -7,6 +7,7 @@ import TeamCard from '../components/TeamCard.vue'
 import TeamModal from '../components/TeamModal.vue'
 import TeamPlayersModal from '../components/TeamPlayersModal.vue'
 import { useAuth } from '../composables/useAuth'
+import { useDemoDataStore } from '../stores/demoData'
 
 interface Team {
   id: number
@@ -29,7 +30,8 @@ const managingTeamPlayers = ref<Team | null>(null)
 const router = useRouter()
 
 // Authentication check
-const { isAuthenticated } = useAuth()
+const { isAuthenticated, isDemoMode, enterDemoMode } = useAuth()
+const demo = useDemoDataStore()
 
 // GraphQL queries and mutations - only execute when authenticated
 const { result, loading, error, refetch } = useQuery(
@@ -43,13 +45,20 @@ const { mutate: createTeam } = useMutation(CREATE_TEAM)
 const { mutate: updateTeam } = useMutation(UPDATE_TEAM)
 const { mutate: deleteTeam } = useMutation(DELETE_TEAM)
 
-const teams = computed(() => result.value?.teams || [])
+const teams = computed(() => {
+  if (isDemoMode.value) return demo.teams
+  return result.value?.teams || []
+})
 
 const handleEditTeam = (team: Team) => {
   editingTeam.value = team
 }
 
 const handleDeleteTeam = async (team: Team) => {
+  if (isDemoMode.value) {
+    alert('Demo mode: teams are read-only.')
+    return
+  }
   if (
     confirm(
       `Are you sure you want to delete "${team.name}"? This will remove all players from the team.`,
@@ -80,6 +89,11 @@ const handleGenerateTeams = (team: Team) => {
 const handleSaveTeam = async (teamData: { name: string }) => {
   console.log('🐛 DEBUG: handleSaveTeam called with:', teamData)
 
+  if (isDemoMode.value) {
+    alert('Demo mode: teams are read-only.')
+    return
+  }
+
   try {
     if (editingTeam.value) {
       console.log('📝 Updating existing team...')
@@ -106,15 +120,47 @@ const closeModal = () => {
   showCreateModal.value = false
   editingTeam.value = null
 }
+
+const requestSignIn = () => {
+  window.dispatchEvent(new Event('app:open-login'))
+}
+
+const startDemo = () => {
+  enterDemoMode()
+}
+
+// If the app starts up with a valid token in storage, there can be a brief moment where
+// the query runs before auth context is fully ready. Auto-refetch once when auth becomes true.
+const didAutoRetry = ref(false)
+watch(
+  () => isAuthenticated.value,
+  async (authed) => {
+    if (!authed) return
+    if (didAutoRetry.value) return
+    if (!error.value) return
+
+    didAutoRetry.value = true
+    try {
+      await refetch()
+    } catch {
+      // Ignore: the normal error UI will handle it if it persists.
+    }
+  },
+)
 </script>
 
 <template>
   <!-- Authentication Required State -->
   <div v-if="!isAuthenticated" class="auth-required">
     <div class="auth-prompt">
-      <h3>🔒 Authentication Required</h3>
-      <p>Please sign in to manage your teams.</p>
-      <p>You'll be able to create, edit, and organize your football teams once logged in.</p>
+      <h3>Sign in to manage teams</h3>
+      <p>Or jump straight in with demo mode (local-only, read-only).</p>
+
+      <div class="auth-actions">
+        <button type="button" class="btn btn--primary" @click="requestSignIn">Sign In</button>
+
+        <button type="button" class="btn" @click="startDemo">Try Demo Mode</button>
+      </div>
     </div>
   </div>
 
@@ -254,6 +300,13 @@ const closeModal = () => {
 .empty-state h3 {
   color: var(--text-primary);
   margin: 0;
+}
+
+.auth-actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  margin-top: var(--space-lg);
 }
 
 .auth-required {

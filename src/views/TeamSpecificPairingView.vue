@@ -2,8 +2,9 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@vue/apollo-composable'
-import { useDraggable } from '@vueuse/core'
 import { GET_TEAM } from '../graphql/queries'
+import { useAuth } from '../composables/useAuth'
+import { useDemoDataStore } from '../stores/demoData'
 import {
   findBestTeamBalance,
   findRandomizedTeamBalance,
@@ -14,6 +15,9 @@ import {
 
 const route = useRoute()
 const router = useRouter()
+
+const { isDemoMode } = useAuth()
+const demo = useDemoDataStore()
 
 // Get team ID from route params
 const teamId = computed(() => parseInt(route.params.teamId as string))
@@ -34,12 +38,16 @@ const { result, loading, error, refetch } = useQuery(
   GET_TEAM,
   { id: teamId },
   {
-    enabled: computed(() => !!teamId.value && !isNaN(teamId.value)),
+    enabled: computed(() => !!teamId.value && !isNaN(teamId.value) && !isDemoMode.value),
   },
 )
 
-const team = computed(() => result.value?.team || null)
-const players = computed(() => team.value?.players || [])
+const team = computed(() => {
+  if (isDemoMode.value) return demo.team
+  return result.value?.team || null
+})
+
+const players = computed(() => (team.value?.players || []) as Player[])
 
 // Auto-select all players initially
 const initializeSelection = () => {
